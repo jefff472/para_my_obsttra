@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Cardíaco ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Share Tech Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Pantalla del Monitor */
+        .monitor {
+            width: 90%;
+            max-width: 600px;
+            height: 300px;
+            background: #001a00; /* Verde oscuro tipo monitor viejo */
+            border: 4px solid #333;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+        }
+
+        /* Rejilla de fondo (Grid médica) */
+        .grid {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: 1;
+        }
+
+        /* Datos médicos falsos */
+        .datos {
+            position: absolute;
+            top: 10px; right: 15px;
+            text-align: right;
+            z-index: 2;
+            color: #00ff00;
+        }
+        .bpm-valor { font-size: 2rem; font-weight: bold; }
+        .bpm-label { font-size: 0.8rem; opacity: 0.7; }
+
+        /* El Canvas donde dibujamos la línea */
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 3;
+        }
+
+        /* Botón de Interacción */
+        .controles {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        #btn-scan {
+            background: #00ff00;
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 0 15px #00ff00;
+            transition: transform 0.1s;
+        }
+
+        #btn-scan:active { transform: scale(0.95); }
+
+        /* Mensaje final */
+        #mensaje-oculto {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            color: #fff;
+            opacity: 0;
+            transition: opacity 2s;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+
+        /* Sonido beep */
+        audio { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="monitor">
+        <div class="grid"></div>
+        <div class="datos">
+            <div class="bpm-valor" id="bpm">70</div>
+            <div class="bpm-label">BPM</div>
+        </div>
+        <canvas id="ecgCanvas"></canvas>
+    </div>
+
+    <div class="controles">
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 10px;">
+            Mantén presionado para auscultar paciente:
+        </p>
+        <button id="btn-scan" 
+            onmousedown="startLoveMode()" 
+            onmouseup="stopLoveMode()" 
+            ontouchstart="startLoveMode()" 
+            ontouchend="stopLoveMode()">
+            🩺 ESCUCHAR
+        </button>
+    </div>
+
+    <div id="mensaje-oculto">
+        Diagnóstico:<br>
+        <span style="color: #ff4d4d; font-size: 1.3rem;">
+            Taquicardia ventricular por exceso de amor.
+        </span><br>
+        Causa: Tú, Tamara. ❤️
+    </div>
+
+    <script>
+        const canvas = document.getElementById('ecgCanvas');
+        const ctx = canvas.getContext('2d');
+        const bpmDisplay = document.getElementById('bpm');
+        const msg = document.getElementById('mensaje-oculto');
+
+        // Ajustar canvas al tamaño del div
+        canvas.width = 600;
+        canvas.height = 300;
+
+        let x = 0;
+        let y = 150; // Centro vertical
+        let speed = 2;
+        let isLoveMode = false;
+        let animationId;
+
+        // Limpiar pantalla inicial
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#00ff00';
+
+        function drawECG() {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+
+            x += speed;
+
+            // Lógica de dibujo
+            if (isLoveMode) {
+                // Dibujar forma de CORAZÓN en vez de pulso normal
+                // Usamos una función seno modificada para parecer medio corazón
+                // Simulación visual simple
+                let fase = (x % 100) / 100; // Ciclo de 0 a 1 cada 100px
+                
+                if (fase < 0.5) {
+                    // Parte alta del latido (forma de m)
+                     y = 150 - Math.sin(fase * Math.PI * 2) * 40;
+                } else {
+                     y = 150;
+                }
+                
+                // Cambiar color a rojo/rosa
+                ctx.strokeStyle = '#ff3366';
+                ctx.shadowColor = '#ff3366';
+                bpmDisplay.innerHTML = Math.floor(Math.random() * (140 - 110) + 110); // Sube latidos
+                bpmDisplay.style.color = '#ff3366';
+                
+            } else {
+                // Ritmo normal (Pico QRS simulado)
+                let fase = x % 100;
+                if (fase > 40 && fase < 45) y = 100; // Sube
+                else if (fase > 45 && fase < 50) y = 200; // Baja
+                else if (fase > 50 && fase < 55) y = 130; // Rebote
+                else y = 150; // Línea base
+
+                ctx.strokeStyle = '#00ff00';
+                ctx.shadowColor = '#00ff00';
+                bpmDisplay.innerHTML = Math.floor(Math.random() * (75 - 65) + 65); // Normal
+                bpmDisplay.style.color = '#00ff00';
+            }
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            // Resetear pantalla si llega al final
+            if (x > canvas.width) {
+                x = 0;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath(); // Reiniciar trazo
+            }
+
+            animationId = requestAnimationFrame(drawECG);
+        }
+
+        function startLoveMode() {
+            isLoveMode = true;
+            msg.style.opacity = "1";
+        }
+
+        function stopLoveMode() {
+            isLoveMode = false;
+            msg.style.opacity = "0";
+            // Volver a color verde
+            ctx.beginPath(); // Cortar línea para cambio de color limpio
+        }
+
+        // Iniciar animación
+        drawECG();
+
+    </script>
+</body>
+</html>
